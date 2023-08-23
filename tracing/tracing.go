@@ -9,7 +9,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	semconv "go.opentelemetry.io/otel/semconv/v1.10.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 	"go.opentelemetry.io/otel/trace"
 	"gorm.io/gorm"
 
@@ -17,6 +17,7 @@ import (
 )
 
 var dbRowsAffected = attribute.Key("db.rows_affected")
+var tagDBInstance = attribute.Key("db.instance")
 
 type otelPlugin struct {
 	provider         trace.TracerProvider
@@ -134,7 +135,8 @@ func (p *otelPlugin) after() gormHookFunc {
 		if tx.Statement.RowsAffected != -1 {
 			attrs = append(attrs, dbRowsAffected.Int64(tx.Statement.RowsAffected))
 		}
-
+		// add tag db.instance
+		attrs = append(attrs, tagDBInstance.String(tx.Statement.DB.Name()))
 		span.SetAttributes(attrs...)
 		switch tx.Error {
 		case nil,
